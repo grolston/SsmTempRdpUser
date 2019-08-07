@@ -74,7 +74,8 @@ if($PSVersionTable.PSVersion.Major -LT 3){
 }
 
 $Username = Read-Host -Prompt "Enter the username"
-$Password = Read-Host -Prompt "Enter the password containing 12 characters containing at least two numeric values" -AsSecureString
+$Password = Read-Host -Prompt "Enter the password containing 12 characters containing at least two numeric values"
+$Password = ConvertTo-SecureString $Password
 [int]$HoursFromNow = Get-HoursFromNow
 
 Add-RdpUser -Username $Username -Password $Password -HoursFromNow $HoursFromNow
