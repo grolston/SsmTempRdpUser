@@ -54,7 +54,7 @@ function Add-RdpUser {
   write-host "Adding User $Username"
   net user $Username $_password /add /comment:$Comment /fullname:"Temporary $Username" /passwordchg:NO
   write-host "Removing password variable"
-  Remove-Variable _password
+  Remove-Variable -Name _password
   Write-Host "Adding $Username to local admin group"
   net localgroup Administrators /add $Username
   $ScriptString ="net user $Username /DELETE"
