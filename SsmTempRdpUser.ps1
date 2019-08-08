@@ -57,12 +57,13 @@ function Add-RdpUser {
   Remove-Variable -Name _password
   Write-Host "Adding $Username to local admin group"
   net localgroup Administrators /add $Username
-  $ScriptString ="net user $Username /DELETE"
+  $JobName = "Remove Temp User $Username"
+  $ScriptString ="net user $Username /DELETE; Unregister-ScheduledJob -Name $JobName"
   $ScriptBlock = [Scriptblock]::Create($ScriptString )
   $RunAt = $(Get-Date).AddHours($HoursFromNow)
   $trigger = New-JobTrigger -Once -At $RunAt
   Write-Host "Creating scheduled deletion for $Username in $HoursFromNow hours from now at $Runat"
-  Register-ScheduledJob -Name "Remove Temp User $Username" -Trigger $trigger -ScriptBlock $scriptBlock
+  Register-ScheduledJob -Name $JobName -Trigger $trigger -ScriptBlock $scriptBlock
   Write-Host "Scheduled delete for $Username registered"
 
   }
