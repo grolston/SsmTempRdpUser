@@ -35,7 +35,7 @@ function Add-RdpUser {
       [Parameter(Mandatory=$true,
                   ValueFromPipelineByPropertyName=$false,
                   Position=0)]
-      [SecureString]$Password,
+      [String]$Password,
       # HoursFromNow help description
       [Parameter(Mandatory=$true,
                   ValueFromPipelineByPropertyName=$false,
@@ -43,28 +43,39 @@ function Add-RdpUser {
       [int]$HoursFromNow
   )
 
-  BEGIN{
-      $BSTR = [system.runtime.interopservices.marshal]::SecureStringToBSTR($Password)
-      $_password = [system.runtime.interopservices.marshal]::PtrToStringAuto($BSTR)
-  }
+  BEGIN{}
 
   PROCESS{
 
-  $Comment = "User added on $(Get-Date) by $($env:USERNAME) for $HoursFromNow"
-  write-host "Adding User $Username"
-  net user $Username $_password /add /comment:$Comment /fullname:"Temporary $Username" /passwordchg:NO
-  write-host "Removing password variable"
-  Remove-Variable -Name _password
-  Write-Host "Adding $Username to local admin group"
-  net localgroup Administrators /add $Username
-  $JobName = "Remove Temp User $Username"
-  $ScriptString ="net user $Username /DELETE; Unregister-ScheduledJob -Name $JobName"
-  $ScriptBlock = [Scriptblock]::Create($ScriptString )
-  $RunAt = $(Get-Date).AddHours($HoursFromNow)
-  $trigger = New-JobTrigger -Once -At $RunAt
-  Write-Host "Creating scheduled deletion for $Username in $HoursFromNow hours from now at $Runat"
-  Register-ScheduledJob -Name $JobName -Trigger $trigger -ScriptBlock $scriptBlock
-  Write-Host "Scheduled delete for $Username registered"
+    Register-ScheduledJob -Name $JobName -Trigger $trigger -ScriptBlock $scriptBlock
+    Write-Host "Scheduled delete for $Username registered"
+
+    $Comment = "User added on $(Get-Date) by $($env:USERNAME) for $HoursFromNow"
+    # Create new local Admin user for script purposes
+    $Computer = [ADSI]"WinNT://$env:COMPUTERNAME,Computer"
+    write-host "Adding User $Username"
+    $LocalAdmin = $Computer.Create("User", $UserName )
+    $LocalAdmin.SetPassword($Password)
+    $LocalAdmin.SetInfo()
+    write-host "Removing password variable"
+    Remove-Variable $Password
+    $LocalAdmin.FullName = "$UserName from Cloud Command"
+    $LocalAdmin.SetInfo()
+    $LocalAdmin.UserFlags = 64 + 65536 # ADS_UF_PASSWD_CANT_CHANGE + ADS_UF_DONT_EXPIRE_PASSWD
+    $LocalAdmin.SetInfo()
+
+    ## Add to local admin group
+    Write-Host "Adding $Username to local admin group"
+    NET LOCALGROUP "Administrators" $UserName /add
+
+    ## Scheduled removal
+    $JobName = "Remove temp user $Username"
+    $ScriptString ="NET USER $Username /DELETE; Unregister-ScheduledJob -Name $JobName"
+    $ScriptBlock = [Scriptblock]::Create($ScriptString)
+    $RunAt = $(Get-Date).AddHours($HoursFromNow)
+    $trigger = New-JobTrigger -Once -At $Runat
+    Write-Host "Creating scheduled deletion for $Username in $HoursFromNow hours from now at $Runat"
+    Register-ScheduledJob -Name "Remove User $Username" -Trigger $trigger -ScriptBlock $scriptBlock
 
   }
   END{}
@@ -81,7 +92,7 @@ if($PSVersionTable.PSVersion.Major -LT 3){
 
 $Username = Read-Host -Prompt "Enter the username"
 $Password = Read-Host -Prompt "Enter the password containing 12 characters containing at least two numeric values"
-$Password = ConvertTo-SecureString $Password -AsPlainText -Force
+
 [int]$HoursFromNow = Get-HoursFromNow
 
 Add-RdpUser -Username $Username -Password $Password -HoursFromNow $HoursFromNow
