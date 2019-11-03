@@ -47,8 +47,7 @@ function Add-RdpUser {
 
   PROCESS{
 
-    Register-ScheduledJob -Name $JobName -Trigger $trigger -ScriptBlock $scriptBlock
-    Write-Host "Scheduled delete for $Username registered"
+
 
     $Comment = "User added on $(Get-Date) by $($env:USERNAME) for $HoursFromNow"
     # Create new local Admin user for script purposes
@@ -76,6 +75,7 @@ function Add-RdpUser {
     $trigger = New-JobTrigger -Once -At $Runat
     Write-Host "Creating scheduled deletion for $Username in $HoursFromNow hours from now at $Runat"
     Register-ScheduledJob -Name "Remove User $Username" -Trigger $trigger -ScriptBlock $scriptBlock
+    Write-Host "Scheduled delete for $Username registered"
 
   }
   END{}
