@@ -57,7 +57,7 @@ function Add-RdpUser {
     $LocalAdmin.SetPassword($Password)
     $LocalAdmin.SetInfo()
     write-host "Removing password variable"
-    Remove-Variable $Password
+    Remove-Variable -Name Password
     $LocalAdmin.FullName = "$UserName from Cloud Command"
     $LocalAdmin.SetInfo()
     $LocalAdmin.UserFlags = 64 + 65536 # ADS_UF_PASSWD_CANT_CHANGE + ADS_UF_DONT_EXPIRE_PASSWD
